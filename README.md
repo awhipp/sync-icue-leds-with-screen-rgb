@@ -10,7 +10,7 @@ Changes all iCUE devices based on main screen's average pixel color. Color updat
 * Enable SDK mode on iCUE application
 * Run the python application `python app.py`
 * To run the application in the background: `pythonw app.py`
-* Execute this application on startup through a bash script or otherwise to have it run. This application should take ownership of the iCUE LEDs as long as it is running before any other applications take ownership.
+* Run either of the above at startup
 
 ## Testing
 

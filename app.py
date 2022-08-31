@@ -28,24 +28,50 @@ def get_available_leds():
     return leds
 
 
-def update_colors(all_leds):
+def update_all_leds(all_leds, colors):
     '''
-    Updates all the available iCUE LEDs with the average color on the main screen
+    Helper function which actually executes the SDK command
     '''
-    cnt = len(all_leds)
 
-    colors = get_color()
+    cnt = len(all_leds)
 
     for idx in range(cnt):
         device_leds = all_leds[idx]
         for led in device_leds:
-            led.r = colors[0]
-            led.g = colors[1]
-            led.b = colors[2]
+            led.r = int(colors[0])
+            led.g = int(colors[1])
+            led.b = int(colors[2])
 
         SDK.set_led_colors_buffer_by_device_index(idx, device_leds)
 
     SDK.set_led_colors_flush_buffer()
+
+    time.sleep(1/24) # Update once per frame
+
+
+def average_rgb(array_one, array_two):
+    '''
+    Helper function to average two RGB arrays
+    '''
+    return (np.array(array_one) + np.array(array_two)) / 2.0
+
+
+def update_colors(all_leds, previous_colors):
+    '''
+    Gets the screen colors and executes the update against the SDK
+    '''
+    colors = get_color()
+
+    if np.array_equal(colors, previous_colors):
+        return previous_colors
+
+    transition = average_rgb(previous_colors, colors)
+
+    update_all_leds(all_leds, average_rgb(previous_colors, transition))
+    update_all_leds(all_leds, average_rgb(transition, colors))
+    update_all_leds(all_leds, colors)
+
+    return colors
 
 
 def get_color():
@@ -59,11 +85,7 @@ def get_color():
 
     avg_color_per_row = np.average(im_arr, axis=0)
     avg_color = np.average(avg_color_per_row, axis=0)
-    return [
-        int(avg_color[0]),
-        int(avg_color[1]),
-        int(avg_color[2])
-    ]
+    return avg_color
 
 
 def main():
@@ -73,6 +95,8 @@ def main():
     global SDK
 
     SDK = CueSdk()
+
+    previous_colors = [0, 0, 0]
 
     connected = SDK.connect()
     if not connected:
@@ -85,8 +109,7 @@ def main():
         return
 
     while True:
-        update_colors(all_leds)
-        time.sleep(1/24) # Frames per second to sleep between calcualtions
+        previous_colors  = update_colors(all_leds, previous_colors)
 
 if __name__ == "__main__":
     main()
