@@ -85,6 +85,13 @@ def get_color():
 
     avg_color_per_row = np.average(im_arr, axis=0)
     avg_color = np.average(avg_color_per_row, axis=0)
+
+    # If under specific threshold, set to bright white
+    all_under_threshold = np.all(avg_color < 50)
+
+    if all_under_threshold:
+        return [255, 255, 255]
+
     return avg_color
 
 
@@ -105,8 +112,11 @@ def main():
         return
 
     all_leds = get_available_leds()
+
     if not all_leds:
         return
+
+    SDK.request_control()
 
     while True:
         previous_colors  = update_colors(all_leds, previous_colors)
