@@ -2,6 +2,8 @@
 Uses the iCUE SDK to control the iCUE LEDs based on average screen color
 '''
 
+import fractions
+import sys
 import time
 
 import numpy as np
@@ -56,11 +58,11 @@ def average_rgb(array_one, array_two):
     return (np.array(array_one) + np.array(array_two)) / 2.0
 
 
-def update_colors(all_leds, previous_colors):
+def update_colors(all_leds, previous_colors, fraction):
     '''
     Gets the screen colors and executes the update against the SDK
     '''
-    colors = get_color()
+    colors = get_color(fraction)
 
     if np.array_equal(colors, previous_colors):
         return previous_colors
@@ -74,7 +76,7 @@ def update_colors(all_leds, previous_colors):
     return colors
 
 
-def get_color():
+def get_color(fraction):
     '''
     Gets the average color on the main screen
     '''
@@ -83,14 +85,18 @@ def get_color():
     im_arr = np.frombuffer(img.tobytes(), dtype=np.uint8)
     im_arr = im_arr.reshape((img.size[1], img.size[0], 3))
 
+    y_size = len(im_arr)
+    y_area = int(y_size * fraction)
+    im_arr = im_arr[y_size-y_area:y_size]
+
     avg_color_per_row = np.average(im_arr, axis=0)
     avg_color = np.average(avg_color_per_row, axis=0)
 
     # If under specific threshold, set to bright white
-    all_under_threshold = np.all(avg_color < 50)
+    # all_under_threshold = np.all(avg_color < 50)
 
-    if all_under_threshold:
-        return [255, 255, 255]
+    # if all_under_threshold:
+    #     return [255, 255, 255]
 
     return avg_color
 
@@ -116,10 +122,14 @@ def main():
     if not all_leds:
         return
 
+    fraction = 0.20
+    if len(sys.argv) > 1:
+        fraction = int(sys.argv[1])/100
+
     SDK.request_control()
 
     while True:
-        previous_colors  = update_colors(all_leds, previous_colors)
+        previous_colors  = update_colors(all_leds, previous_colors, fraction)
 
 if __name__ == "__main__":
     main()
